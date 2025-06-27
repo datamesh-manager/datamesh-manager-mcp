@@ -9,7 +9,7 @@ A Model Context Protocol (MCP) server for discovering data products and requesti
 Data Products are managed high-quality business data sets shared with other teams within an organization and specified by data contracts. 
 Data contracts describe the structure, semantics, quality, and terms of use. Data products provide the crucial context AI needs to understand not just what data exists, but what it means and how to use it correctly. They are a perfect fit for AI agents to _discover_ which data product are available, evaluate, if they are relevant, and use them to build executable queries to answer business questions or handle specific tasks. 
 
-Data Mesh Manager is a central data product marketplace. AI agents use its MCP server to find relevant data products and to request access while enforcing _data governance_ rules.
+Data Mesh Manager is a central data product marketplace. AI agents use its MCP server to find relevant data products and to request access while enforcing _data governance_ rules and data contract specific terms of use.
 
 When the relevant data products are identified, we use technology specific MCP servers to _query_ the actual data (typically tables in Databricks, Snowflake, S3, or APIs). The LLM can formulate SQL queries by analyzing the structure and semantics stated in the data contracts and execute queries through the MCP servers.
 
