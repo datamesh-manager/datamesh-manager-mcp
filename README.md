@@ -4,7 +4,7 @@ A Model Context Protocol (MCP) server for discovering data products and requesti
 
 ## Concept
 
-> Idea: Provide business context to AI agents for any domain-specific question or task by utilizing data products and data contracts.
+> Idea: Enable AI agents to answer any business question.
 
 Data Products are managed high-quality business data sets shared with other teams within an organization and specified by data contracts. 
 Data contracts describe the structure, semantics, quality, and terms of use. With this information they are a perfect fit for AI agents to identify, which data product are relevant to answer business questions or handle specific tasks. 
