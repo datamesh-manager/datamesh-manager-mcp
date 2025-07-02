@@ -37,7 +37,12 @@ b) Alternatively, you can use the dataproduct_search tool to search for data pro
   - A data contract contains the terms of use for accessing the data. You must adhere to the terms of use when accessing the data.
   - A data contract contains the schema of the data model. Use this schema to identify if the data product is suitable for your use case.
   - Use the schema if you later build queries (e.g., SQL) to access the data.
-  - The data model also contains descriptions and other information about the data that you can use to understand the data."""
+  - The data model also contains descriptions and other information about the data that you can use to understand the data.
+
+4. REQUESTING ACCESS TO DATA
+  - If you don't have access to a data product output port, you can use the dataproduct_request_access tool to request access.
+  - You need to provide the data product ID, output port ID, and a business purpose for why you need access.
+  - The system will automatically approve your request if instant access is enabled, otherwise it will be sent to the data product owner for review."""
 
 
 @mcp.tool()
@@ -138,8 +143,8 @@ async def dataproduct_search(search_term: str) -> List[Dict[str, Any]]:
 async def dataproduct_get(data_product_id: str) -> str:
     """
     Get a data product by its ID. The data product contains all its output ports and server information.
-    The response may include a data contract ID.
-    You can use the datacontract_get tool to get the details of the data contract for more semantic information and terms of use..
+    The response includes access status for each output port and may include a data contract ID.
+    You can use the datacontract_get tool to get the details of the data contract for more semantic information and terms of use.
     
     Args:
         data_product_id: The data product ID.
@@ -154,10 +159,45 @@ async def dataproduct_get(data_product_id: str) -> str:
             logger.info(f"dataproduct_get: data product {data_product_id} not found")
             return "Data product not found"
         
-        # Convert the data product to YAML format
+        # todo make null safe
+        access_lifecycle_status = "You do not have access to this output port"
+
+        # Add access status to each output port
+        output_ports = data_product.get("outputPorts", [])
+        for output_port in output_ports:
+            try:
+                output_port_id = output_port.get("id")
+                if output_port_id:
+                    logger.info(f"Checking access status for output port {output_port_id}")
+                    access_status = await client.get_access_status(data_product_id, output_port_id)
+
+                    # Set output_port["accessStatus"] based on the result of access_status
+                    status = access_status.access_status if access_status else None
+                    if not status:
+                        output_port["accessStatus"] = "You do not have access to this output port, you can request access. You may not access the data directly for data governance reasons without an approved access request."
+                    elif status == "REQUESTED" or status == "UPCOMING":
+                        output_port["accessStatus"] = "Your access request is pending approval. You may not access the data directly for data governance reasons without an approved access request."
+                    elif status == "REJECTED":
+                        output_port["accessStatus"] = "Your access request was rejected"
+                    elif status == "ACTIVE":
+                        output_port["accessStatus"] = "You have access to this output port"
+                    elif status == "EXPIRED":
+                        output_port["accessStatus"] = "Your access request is expired"
+                    else:
+                        output_port["accessStatus"] = f"Unknown access status: {status}"
+
+                    logger.info(f"Added access status for output port {output_port_id}")
+                else:
+                    logger.warning(f"Output port missing externalId/id, skipping access status")
+                    output_port["accessStatus"] = None
+            except Exception as e:
+                logger.warning(f"Failed to get access status for output port {output_port.get('externalId', 'unknown')}: {str(e)}")
+                output_port["accessStatus"] = None
+        
+        # Convert the enhanced data product to YAML format
         import yaml
         yaml_data = yaml.dump(data_product, default_flow_style=False, sort_keys=False)
-        logger.info(f"dataproduct_get successfully retrieved data product {data_product_id}")
+        logger.info(f"dataproduct_get successfully retrieved data product {data_product_id} with access status")
         return yaml_data
         
     except ValueError as e:
@@ -198,6 +238,62 @@ async def datacontract_get(data_contract_id: str) -> str:
     except Exception as e:
         logger.error(f"datacontract_get Exception: {str(e)}")
         return f"Error fetching data contract: {str(e)}"
+
+
+@mcp.tool()
+async def dataproduct_request_access(data_product_id: str, output_port_id: str, purpose: str) -> str:
+    """
+    Request access to a specific output port of a data product.
+    This creates an access request that will be reviewed by the data product owner.
+    
+    Args:
+        data_product_id: The ID of the data product.
+        output_port_id: The ID of the output port to request access to.
+        purpose: The business purpose/reason for requesting access to this data.
+    """
+    logger.info(f"dataproduct_request_access called with data_product_id={data_product_id}, output_port_id={output_port_id}, purpose={purpose}")
+    
+    try:
+        client = DataMeshManagerClient()
+        result = await client.post_request_access(data_product_id, output_port_id, purpose)
+        
+        # Check if access was automatically granted based on status
+        status_lower = result.status.lower()
+        
+        if status_lower in ["active", "approved", "granted"]:
+            # Access was automatically granted
+            response = f"""🎉 Access granted automatically!
+
+Access Request Details:
+- Access ID: {result.access_id}
+- Status: {result.status}
+- Data Product: {data_product_id}
+- Output Port: {output_port_id}
+- Purpose: {purpose}
+
+Great news! Your access request was automatically approved. You now have access to this data product output port and can start using the data immediately."""
+        else:
+            # Access requires manual approval
+            response = f"""Access request submitted successfully!
+
+Access Request Details:
+- Access ID: {result.access_id}
+- Status: {result.status}
+- Data Product: {data_product_id}
+- Output Port: {output_port_id}
+- Purpose: {purpose}
+
+Your access request has been submitted and is now {result.status}. You will be notified when the data product owner reviews your request."""
+        
+        logger.info(f"dataproduct_request_access successfully submitted for data_product_id={data_product_id}, access_id={result.access_id}, status={result.status}")
+        return response
+        
+    except ValueError as e:
+        logger.error(f"dataproduct_request_access ValueError: {str(e)}")
+        return f"Error: {str(e)}"
+    except Exception as e:
+        logger.error(f"dataproduct_request_access Exception: {str(e)}")
+        return f"Error requesting access: {str(e)}"
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ import os
 import logging
 import httpx
 from typing import List, Dict, Any, Optional
+from .models import AccessStatusResult, RequestAccessRequest, RequestAccessResult
 
 
 class DataMeshManagerClient:
@@ -253,3 +254,85 @@ class DataMeshManagerClient:
             data = response.json()
             self.logger.info(f"GET request to {url} successful, status: {response.status_code}")
             return data
+    
+    async def get_access_status(self, data_product_external_id: str, output_port_external_id: str) -> AccessStatusResult:
+        """
+        Get access status for a specific output port of a data product.
+        This is a private endpoint that requires internal API access.
+        
+        Args:
+            data_product_external_id: The external ID of the data product.
+            output_port_external_id: The external ID of the output port.
+            
+        Returns:
+            Access status information including data product ID, output port ID, 
+            data contract ID, output port type, auto-approve status, access ID, 
+            access status, and access lifecycle status.
+            
+        Raises:
+            httpx.HTTPStatusError: If the API request fails.
+        """
+        if not data_product_external_id:
+            raise ValueError("Data product external ID is required")
+        if not output_port_external_id:
+            raise ValueError("Output port external ID is required")
+            
+        url = f"{self.base_url}/api/dataproducts/{data_product_external_id}/outputports/{output_port_external_id}/access-status"
+        
+        # Add the internal API header required for this private endpoint
+        headers = self.headers.copy()
+        headers["x-internal-api"] = "true"
+        
+        self.logger.info(f"Making GET request to {url}")
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            self.logger.info(f"GET request to {url} successful, status: {response.status_code}")
+            return AccessStatusResult(**data)
+    
+    async def post_request_access(
+        self, 
+        data_product_external_id: str, 
+        output_port_external_id: str, 
+        purpose: str
+    ) -> RequestAccessResult:
+        """
+        Request access to a specific output port of a data product.
+        This is a private endpoint that requires internal API access and user scope.
+        
+        Args:
+            data_product_external_id: The external ID of the data product.
+            output_port_external_id: The external ID of the output port.
+            purpose: The purpose/reason for requesting access to the data.
+            
+        Returns:
+            Request access result containing access ID and status.
+            
+        Raises:
+            httpx.HTTPStatusError: If the API request fails.
+            ValueError: If required parameters are missing.
+        """
+        if not data_product_external_id:
+            raise ValueError("Data product external ID is required")
+        if not output_port_external_id:
+            raise ValueError("Output port external ID is required")
+        if not purpose:
+            raise ValueError("Purpose is required for access request")
+            
+        url = f"{self.base_url}/api/dataproducts/{data_product_external_id}/outputports/{output_port_external_id}/request-access"
+        
+        # Add the internal API header required for this private endpoint
+        headers = self.headers.copy()
+        headers["x-internal-api"] = "true"
+        
+        # Create the request payload
+        request_data = RequestAccessRequest(purpose=purpose)
+        
+        self.logger.info(f"Making POST request to {url} with purpose: {purpose}")
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=headers, json=request_data.model_dump(by_alias=True))
+            response.raise_for_status()
+            data = response.json()
+            self.logger.info(f"POST request to {url} successful, status: {response.status_code}")
+            return RequestAccessResult(**data)

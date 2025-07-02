@@ -40,7 +40,7 @@ Steps:
     - Get a data product by its ID. The data product contains all its output ports and server information.
     - Required inputs:
       - `data_product_id` (string): The data product ID.
-    - Returns: Data product as YAML
+    - Returns: Data product details, including access-status
 
 4. `datacontract_get`
     - Get a data contract by its ID.
@@ -115,6 +115,6 @@ Add this entry:
 ### Use with MCP Inspector
 
 ```
-npx @modelcontextprotocol/inspector --config example.config.json --server datamesh-manager
+npx @modelcontextprotocol/inspector --config config.json --server datamesh-manager
 ```
 

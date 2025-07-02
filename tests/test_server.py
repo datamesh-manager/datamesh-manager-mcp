@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-from datamesh_manager_mcp.server import dataproduct_list, dataproduct_get, datacontract_get, dataproduct_search
+from datamesh_manager_mcp.server import dataproduct_list, dataproduct_get, datacontract_get, dataproduct_search, dataproduct_request_access
 
 
 class TestServer:
@@ -41,6 +41,18 @@ class TestServer:
         """Test that datacontract_get returns a non-None result."""
         result = await datacontract_get("test-id")
         assert result is not None
+    
+    @pytest.mark.asyncio
+    async def test_dataproduct_request_access_returns_string(self):
+        """Test that dataproduct_request_access returns a string."""
+        result = await dataproduct_request_access("test-product", "test-port", "test purpose")
+        assert isinstance(result, str)
+    
+    @pytest.mark.asyncio
+    async def test_dataproduct_request_access_not_none(self):
+        """Test that dataproduct_request_access returns a non-None result."""
+        result = await dataproduct_request_access("test-product", "test-port", "test purpose")
+        assert result is not None
 
 
 class TestServerIntegration:
@@ -71,4 +83,13 @@ class TestServerIntegration:
             result = await datacontract_get("test-id")
             assert result is not None
         except Exception as e:
-            pytest.fail(f"datacontract_get raised an exception: {e}") 
+            pytest.fail(f"datacontract_get raised an exception: {e}")
+    
+    @pytest.mark.asyncio
+    async def test_dataproduct_request_access_function_callable(self):
+        """Test that dataproduct_request_access is callable and doesn't raise exceptions."""
+        try:
+            result = await dataproduct_request_access("test-product", "test-port", "test purpose")
+            assert result is not None
+        except Exception as e:
+            pytest.fail(f"dataproduct_request_access raised an exception: {e}")
