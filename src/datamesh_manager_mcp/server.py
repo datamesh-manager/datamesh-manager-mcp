@@ -260,7 +260,7 @@ async def dataproduct_request_access(data_product_id: str, output_port_id: str, 
         # Check if access was automatically granted based on status
         status_lower = result.status.lower()
         
-        if status_lower in ["active", "approved", "granted"]:
+        if status_lower in ["active"]:
             # Access was automatically granted
             response = f"""🎉 Access granted automatically!
 
@@ -271,7 +271,7 @@ Access Request Details:
 - Output Port: {output_port_id}
 - Purpose: {purpose}
 
-Great news! Your access request was automatically approved. You now have access to this data product output port and can start using the data immediately."""
+Your access request was automatically approved. You now have access to this data product output port using the server details and can start using the data immediately."""
         else:
             # Access requires manual approval
             response = f"""Access request submitted successfully!
@@ -283,7 +283,7 @@ Access Request Details:
 - Output Port: {output_port_id}
 - Purpose: {purpose}
 
-Your access request has been submitted and is now {result.status}. You will be notified when the data product owner reviews your request."""
+Your access request has been submitted and is now {result.status}. You will be notified when the data product owner reviews your request. You can check the status in dataproduct details in the output port."""
         
         logger.info(f"dataproduct_request_access successfully submitted for data_product_id={data_product_id}, access_id={result.access_id}, status={result.status}")
         return response
